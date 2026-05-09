@@ -3,6 +3,9 @@
 Generate pixel-art sprite sheets, JSON atlases, and GIF previews for
 plants-tamagotchi design assets (128x160 backgrounds, 80x80 character).
 
+Avocado matches the art direction of:
+  design/references/pixel-art-avocado-character-reference.png
+
 Run from repo root: python3 design/tools/generate_pixel_animations.py
 """
 from __future__ import annotations
@@ -48,24 +51,161 @@ def fill_ellipse(
                 px[x, y] = color
 
 
-def draw_avocado_base(
-    logical_w: int,
-    logical_h: int,
-    skin: tuple[int, int, int, int],
-    outline: tuple[int, int, int, int],
-    pit: tuple[int, int, int, int],
-) -> Image.Image:
+# Avocado reference palette (pixel-art vector style)
+AVO_FLESH = (228, 238, 205, 255)
+AVO_OUTLINE = (18, 48, 30, 255)
+AVO_PIT = (118, 72, 42, 255)
+AVO_PIT_SHADOW = (72, 46, 28, 255)
+AVO_INK = (12, 12, 12, 255)
+AVO_WHITE = (255, 255, 255, 255)
+AVO_RED = (215, 52, 52, 255)
+
+
+def draw_avocado_reference_base(logical_w: int, logical_h: int) -> Image.Image:
+    """Half-avocado: creamy flesh, large pit with right-side shadow, dark green outline."""
     img = Image.new("RGBA", (logical_w, logical_h), (0, 0, 0, 0))
     px = img.load()
-    cx, cy = logical_w // 2, logical_h // 2 + 2
-    # body
-    fill_ellipse(px, logical_w, logical_h, cx, cy, 13, 15, skin)
-    # pit (darker oval lower)
-    fill_ellipse(px, logical_w, logical_h, cx, cy + 4, 7, 8, pit)
-    # highlight on pit
-    fill_ellipse(px, logical_w, logical_h, cx - 2, cy + 2, 2, 2, (120, 80, 60, 255))
-    outline_rgba_sprite(px, logical_w, logical_h, outline)
+    cx = logical_w // 2
+    fill_ellipse(px, logical_w, logical_h, cx, 26, 11, 10, AVO_FLESH)
+    fill_ellipse(px, logical_w, logical_h, cx, 13, 7, 8, AVO_FLESH)
+    fill_ellipse(px, logical_w, logical_h, cx, 25, 6, 7, AVO_PIT)
+    # Pit depth chunk (upper-right of pit), like reference L/crescent
+    for sx, sy in ((3, -2), (4, -2), (4, -1), (4, 0), (3, -1)):
+        x, y = cx + sx, 25 + sy
+        if 0 <= x < logical_w and 0 <= y < logical_h:
+            px[x, y] = AVO_PIT_SHADOW
+    # Pit rim against flesh (outline does not catch interior pit/flesh edge)
+    def _in_pit(x: int, y: int) -> bool:
+        dx = (x - cx) / 6.0
+        dy = (y - 25) / 7.0
+        return dx * dx + dy * dy <= 1.0
+
+    for y in range(logical_h):
+        for x in range(logical_w):
+            if not _in_pit(x, y):
+                continue
+            r, g, b, a = px[x, y]
+            if (r, g, b) not in (AVO_PIT[:3], AVO_PIT_SHADOW[:3]):
+                continue
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < logical_w and 0 <= ny < logical_h:
+                    br, bg, bb, ba = px[nx, ny]
+                    if ba and (br, bg, bb) == AVO_FLESH[:3]:
+                        px[x, y] = AVO_OUTLINE
+                        break
+    outline_rgba_sprite(px, logical_w, logical_h, AVO_OUTLINE)
     return img
+
+
+def _put_px(px, w: int, h: int, x: int, y: int, c: tuple[int, int, int, int]) -> None:
+    if 0 <= x < w and 0 <= y < h:
+        px[x, y] = c
+
+
+def _draw_legs(img: Image.Image) -> None:
+    px, w, h = img.load(), *img.size
+    for y in range(33, 39):
+        _put_px(px, w, h, 16, y, AVO_INK)
+        _put_px(px, w, h, 23, y, AVO_INK)
+    _put_px(px, w, h, 15, 38, AVO_INK)
+    _put_px(px, w, h, 24, 38, AVO_INK)
+
+
+def draw_avocado_ref_happy(img: Image.Image, frame: int) -> None:
+    """Reference happy: ^ eyes, open mouth (teeth + tongue), arms raised."""
+    px, w, h = img.load(), *img.size
+    b = int(round(math.sin(frame * math.pi / 4)))
+    ey = 10 + b
+    # smiling eyes: short upward arcs
+    for x, y in ((11, ey + 2), (12, ey + 1), (13, ey + 1), (14, ey + 2)):
+        _put_px(px, w, h, x, y, AVO_INK)
+    for x, y in ((25, ey + 2), (26, ey + 1), (27, ey + 1), (28, ey + 2)):
+        _put_px(px, w, h, x, y, AVO_INK)
+    # Open mouth: black frame, white teeth row, red tongue center
+    mx, my = 17, 13 + b
+    mouth = [
+        (mx + 0, my + 0, AVO_INK),
+        (mx + 1, my + 0, AVO_INK),
+        (mx + 2, my + 0, AVO_INK),
+        (mx + 3, my + 0, AVO_INK),
+        (mx + 4, my + 0, AVO_INK),
+        (mx + 5, my + 0, AVO_INK),
+        (mx + 0, my + 1, AVO_INK),
+        (mx + 1, my + 1, AVO_WHITE),
+        (mx + 2, my + 1, AVO_WHITE),
+        (mx + 3, my + 1, AVO_WHITE),
+        (mx + 4, my + 1, AVO_WHITE),
+        (mx + 5, my + 1, AVO_INK),
+        (mx + 0, my + 2, AVO_INK),
+        (mx + 1, my + 2, AVO_WHITE),
+        (mx + 2, my + 2, AVO_RED),
+        (mx + 3, my + 2, AVO_RED),
+        (mx + 4, my + 2, AVO_WHITE),
+        (mx + 5, my + 2, AVO_INK),
+        (mx + 0, my + 3, AVO_INK),
+        (mx + 1, my + 3, AVO_INK),
+        (mx + 2, my + 3, AVO_INK),
+        (mx + 3, my + 3, AVO_INK),
+        (mx + 4, my + 3, AVO_INK),
+        (mx + 5, my + 3, AVO_INK),
+    ]
+    for x, y, c in mouth:
+        _put_px(px, w, h, x, y, c)
+    # Arms up (1px black), slight bounce on even frames
+    ab = b % 2
+    arm_pts_l = [(8, 21 + ab), (7, 19 + ab), (6, 17 + ab), (5, 15 + ab), (4, 14 + ab)]
+    arm_pts_r = [(31, 21 + ab), (32, 19 + ab), (33, 17 + ab), (34, 15 + ab), (35, 14 + ab)]
+    for x, y in arm_pts_l + arm_pts_r:
+        _put_px(px, w, h, x, y, AVO_INK)
+    _draw_legs(img)
+
+
+def draw_avocado_ref_neutral(img: Image.Image, frame: int) -> None:
+    px, w, h = img.load(), *img.size
+    blink = frame % 6 == 5
+    ey = 11
+    if blink:
+        _put_px(px, w, h, 12, ey, AVO_INK)
+        _put_px(px, w, h, 13, ey, AVO_INK)
+        _put_px(px, w, h, 26, ey, AVO_INK)
+        _put_px(px, w, h, 27, ey, AVO_INK)
+    else:
+        _put_px(px, w, h, 12, ey, AVO_INK)
+        _put_px(px, w, h, 13, ey, AVO_INK)
+        _put_px(px, w, h, 26, ey, AVO_INK)
+        _put_px(px, w, h, 27, ey, AVO_INK)
+    # straight small mouth
+    for x in range(18, 23):
+        _put_px(px, w, h, x, 18, AVO_INK)
+    # arms at sides
+    for y in range(22, 29):
+        _put_px(px, w, h, 8, y, AVO_INK)
+        _put_px(px, w, h, 31, y, AVO_INK)
+    _draw_legs(img)
+
+
+def draw_avocado_ref_sad(img: Image.Image, frame: int) -> None:
+    px, w, h = img.load(), *img.size
+    sway = int(math.sin(frame * math.pi / 4))
+    ey = 12 + sway
+    # downturned eye arcs
+    for x, y in ((11, ey + 1), (12, ey + 2), (13, ey + 2), (14, ey + 1)):
+        _put_px(px, w, h, x, y, AVO_INK)
+    for x, y in ((25, ey + 1), (26, ey + 2), (27, ey + 2), (28, ey + 1)):
+        _put_px(px, w, h, x, y, AVO_INK)
+    # small frown
+    cx = w // 2
+    for t in range(5):
+        x = cx - 2 + t
+        y = 19 + abs(t - 2) // 2
+        _put_px(px, w, h, x, y, AVO_INK)
+    # droopy arms
+    for x, y in ((9, 21), (8, 23), (7, 25), (6, 28), (30, 21), (31, 23), (32, 25), (33, 28)):
+        _put_px(px, w, h, x, y, AVO_INK)
+    _draw_legs(img)
+    if frame % 4 == 2:
+        _put_px(px, w, h, 14, 17, (90, 170, 240, 230))
 
 
 def outline_rgba_sprite(
@@ -105,58 +245,6 @@ def draw_pear_base(
     fill_ellipse(px, logical_w, logical_h, cx + 4, 12, 2, 3, highlight)
     outline_rgba_sprite(px, logical_w, logical_h, outline)
     return img
-
-
-def draw_face_happy(img: Image.Image, frame: int) -> None:
-    draw = ImageDraw.Draw(img)
-    mw, mh = img.size
-    bounce = int(1.5 * math.sin(frame * math.pi / 4))
-    # eyes (arcs simulated with small rects)
-    ex, ey = 14 + bounce, 12 + bounce
-    draw.rectangle([ex, ey, ex + 2, ey + 1], fill=(30, 30, 30, 255))
-    draw.rectangle([mw - ex - 3, ey, mw - ex - 1, ey + 1], fill=(30, 30, 30, 255))
-    # smile
-    cx, cy = mw // 2, mh // 2 + 4 + bounce
-    for t in range(5):
-        x = cx - 4 + t
-        y = cy + 4 + abs(t - 2)
-        if 0 <= x < mw and 0 <= y < mh:
-            draw.point((x, y), fill=(30, 30, 30, 255))
-    # blush
-    if frame % 4 < 2:
-        draw.rectangle([8, 18 + bounce, 10, 19 + bounce], fill=(255, 140, 160, 180))
-        draw.rectangle([mw - 11, 18 + bounce, mw - 9, 19 + bounce], fill=(255, 140, 160, 180))
-
-
-def draw_face_neutral(img: Image.Image, frame: int) -> None:
-    draw = ImageDraw.Draw(img)
-    blink = frame % 6 == 5
-    ey = 13
-    mw = img.size[0]
-    if blink:
-        draw.rectangle([12, ey, 15, ey], fill=(30, 30, 30, 255))
-        draw.rectangle([mw - 16, ey, mw - 13, ey], fill=(30, 30, 30, 255))
-    else:
-        draw.rectangle([12, ey - 1, 14, ey + 1], fill=(30, 30, 30, 255))
-        draw.rectangle([mw - 15, ey - 1, mw - 13, ey + 1], fill=(30, 30, 30, 255))
-    cx, cy = mw // 2, mw // 2 + 6
-    draw.rectangle([cx - 3, cy + 5, cx + 3, cy + 5], fill=(30, 30, 30, 255))
-
-
-def draw_face_sad(img: Image.Image, frame: int) -> None:
-    draw = ImageDraw.Draw(img)
-    sway = int(math.sin(frame * math.pi / 4) * 1)
-    mw = img.size[0]
-    ey = 14 + sway
-    draw.rectangle([11, ey, 14, ey + 2], fill=(30, 30, 30, 255))
-    draw.rectangle([mw - 15, ey, mw - 12, ey + 2], fill=(30, 30, 30, 255))
-    cx, cy = mw // 2, mw // 2 + 7
-    for t in range(5):
-        x = cx - 4 + t
-        y = cy + 4 - abs(t - 2) // 2
-        draw.point((x, y), fill=(30, 30, 30, 255))
-    if frame % 4 == 2:
-        draw.rectangle([mw // 2 - 1, 26, mw // 2 + 1, 29], fill=(100, 180, 255, 220))
 
 
 PEAR_FACE_Y = -3
@@ -218,21 +306,12 @@ def build_avocado_animation(
     name: str,
     frames: int,
     face_fn,
-    skin_tone: tuple[int, int, int, int],
 ) -> tuple[Image.Image, list[Image.Image]]:
     logical = 40
     frames_imgs: list[Image.Image] = []
-    outline = (40, 70, 30, 255)
-    pit = (90, 55, 35, 255)
     for f in range(frames):
-        base = draw_avocado_base(logical, logical, skin_tone, outline, pit)
+        base = draw_avocado_reference_base(logical, logical)
         face_fn(base, f)
-        # tiny arms bounce for happy
-        if "happy" in name:
-            draw = ImageDraw.Draw(base)
-            arm = 1 if f % 2 == 0 else 0
-            draw.rectangle([4, 22 - arm, 6, 26 - arm], fill=(skin_tone[0] - 15, skin_tone[1] - 10, skin_tone[2] - 5, 255))
-            draw.rectangle([logical - 7, 22 - arm, logical - 5, 26 - arm], fill=(skin_tone[0] - 15, skin_tone[1] - 10, skin_tone[2] - 5, 255))
         up = upscale_nearest(base, 2)
         frames_imgs.append(up)
 
@@ -454,18 +533,14 @@ def sheet_rel_path(filename: str) -> str:
 def main() -> None:
     ensure_dirs()
 
-    # --- Avocado ---
-    happy_skin = (130, 170, 60, 255)
-    neutral_skin = (110, 150, 55, 255)
-    sad_skin = (95, 130, 50, 255)
-
+    # --- Avocado (reference: design/references/pixel-art-avocado-character-reference.png) ---
     specs_char = [
-        ("avocado_happy_idle", 8, draw_face_happy, happy_skin, 8.0, 125),
-        ("avocado_neutral_idle", 6, draw_face_neutral, neutral_skin, 6.0, 167),
-        ("avocado_sad_idle", 8, draw_face_sad, sad_skin, 7.0, 143),
+        ("avocado_happy_idle", 8, draw_avocado_ref_happy, 8.0, 125),
+        ("avocado_neutral_idle", 6, draw_avocado_ref_neutral, 6.0, 167),
+        ("avocado_sad_idle", 8, draw_avocado_ref_sad, 7.0, 143),
     ]
-    for aid, nframes, face, skin, fps, gif_ms in specs_char:
-        sheet, frames = build_avocado_animation(aid, nframes, face, skin)
+    for aid, nframes, face, fps, gif_ms in specs_char:
+        sheet, frames = build_avocado_animation(aid, nframes, face)
         fname = f"{aid}_80x80.png"
         sheet_path = OUT_SHEETS / fname
         sheet.save(sheet_path)
