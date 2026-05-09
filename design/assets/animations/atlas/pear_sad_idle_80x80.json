@@ -1,0 +1,10 @@
+{
+  "id": "pear_sad_idle",
+  "sheet": "design/assets/animations/sheets/pear_sad_idle_80x80.png",
+  "frame_width": 80,
+  "frame_height": 80,
+  "frames": 8,
+  "fps": 7.0,
+  "loop": true,
+  "layout": "horizontal"
+}

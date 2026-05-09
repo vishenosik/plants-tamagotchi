@@ -1,0 +1,10 @@
+{
+  "id": "bg_season_summer_clear",
+  "sheet": "design/assets/animations/sheets/bg_season_summer_clear_128x160.png",
+  "frame_width": 128,
+  "frame_height": 160,
+  "frames": 4,
+  "fps": 2.0,
+  "loop": true,
+  "layout": "horizontal"
+}

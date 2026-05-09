@@ -1,0 +1,10 @@
+{
+  "id": "bg_season_autumn_rain",
+  "sheet": "design/assets/animations/sheets/bg_season_autumn_rain_128x160.png",
+  "frame_width": 128,
+  "frame_height": 160,
+  "frames": 6,
+  "fps": 4.0,
+  "loop": true,
+  "layout": "horizontal"
+}

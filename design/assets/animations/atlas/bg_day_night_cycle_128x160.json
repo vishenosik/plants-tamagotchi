@@ -1,0 +1,10 @@
+{
+  "id": "bg_day_night_cycle",
+  "sheet": "design/assets/animations/sheets/bg_day_night_cycle_128x160.png",
+  "frame_width": 128,
+  "frame_height": 160,
+  "frames": 12,
+  "fps": 3.0,
+  "loop": true,
+  "layout": "horizontal"
+}

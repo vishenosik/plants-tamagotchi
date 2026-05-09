@@ -1,0 +1,10 @@
+{
+  "id": "avocado_neutral_idle",
+  "sheet": "design/assets/animations/sheets/avocado_neutral_idle_80x80.png",
+  "frame_width": 80,
+  "frame_height": 80,
+  "frames": 6,
+  "fps": 6.0,
+  "loop": true,
+  "layout": "horizontal"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "bg_season_winter_snow",
+  "sheet": "design/assets/animations/sheets/bg_season_winter_snow_128x160.png",
+  "frame_width": 128,
+  "frame_height": 160,
+  "frames": 8,
+  "fps": 5.0,
+  "loop": true,
+  "layout": "horizontal"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "avocado_happy_idle",
+  "sheet": "design/assets/animations/sheets/avocado_happy_idle_80x80.png",
+  "frame_width": 80,
+  "frame_height": 80,
+  "frames": 8,
+  "fps": 8.0,
+  "loop": true,
+  "layout": "horizontal"
+}
